@@ -48,7 +48,7 @@ def draw(data, name=None, path=None, ext='gif'):
         result = subprocess.call(cmd)
         if result > 0:
             raise TransferalError('Some probroblems occured while transfering.')
-        print('Finished to Draw at {}.'.format(_file + 'ext'))
+        print('Finished to Draw at {}.'.format(_file + '.' + ext))
     else:
         raise DotCommandNotFound
 
