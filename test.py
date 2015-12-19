@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import unittest
-import importlib
 import tempfile
 import os
 import shutil
@@ -8,10 +7,17 @@ import shutil
 import grapy as g
 
 
+if g.PYVER == 2:
+    setattr(unittest.TestCase, 'assertCountEqual',
+        unittest.TestCase.assertItemsEqual)
+else:
+    from imp import reload
+
+
 class ParseDictTest(unittest.TestCase):
     def _callFUT(self, data):
         # To reflesh toplevel variable named `iterables_cnt`.
-        importlib.reload(g)
+        reload(g)
         return g.iter_parse_dict(data)
 
     def assertParseDict(self, datas, expects):
@@ -37,7 +43,7 @@ class ParseDictTest(unittest.TestCase):
             ('c->d;',),
             ('100->1000;',),
             ('10000.1->100000.2;',),
-            ('b\'e\'->bytearray(b\'f\');',)
+            ((lambda x: x + '->bytearray(b\'f\');')('b\'e\'' if g.PYVER == 3 else 'e'),)
         ]
         self.assertParseDict(datas, expects)
 
@@ -123,7 +129,7 @@ class DrawTest(unittest.TestCase):
 
     def _callFUT(self, data, name=None):
         # To reflesh toplevel variable named `iterables_cnt`.
-        importlib.reload(g)
+        reload(g)
         return g.draw(data, name=name, path=self.tmpdir)
 
     def test_raise_exception_with_invalid_type(self):

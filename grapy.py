@@ -1,47 +1,56 @@
 # -*- coding: utf-8 -*-
 import os
-from string import Template as T
+import sys
 from itertools import repeat
 import subprocess
 
 
+PYVER = sys.version_info.major
 base_types = (int, float, str, bytes, bytearray)
 base_itypes = (list, tuple, set)
 iterables_cnt = dict(zip((i.__name__ for i in base_itypes),
                          repeat(1, len(base_itypes))))
-
-t = T('''
-${prefix}graph {name} {{
+template = '''
+digraph {name} {{
   {body}
 }}
-''')
-main_t, sub_t = [t.safe_substitute({'prefix': x}) for x in ['di', 'sub']]
+'''
 
 
 class TransferalError(Exception):
     pass
 
 
-def draw(data, name=None, path=None, out=False, ext='gif'):
+class DotCommandNotFound(Exception):
+    pass
+
+
+def transfer(data, name=None, path=None):
     if not isinstance(data, base_itypes + (dict,)):
         raise TypeError('Allowed types are `list`, `tuple`, `dict`, `set`')
 
     if name is None:
         name = 'from_grapy'
     body = make_body(data)
-    result = main_t.format(name=name, body=body)
+    result = template.format(name=name, body=body)
     if path is None:
         path = os.getcwd()
     _file = os.path.join(path, name)
     with open(_file + '.dot', 'w') as f:
         f.write(result)
+    return _file
 
-    if out and subprocess.call(['which', 'dot']) == 0:
+
+def draw(data, name=None, path=None, ext='gif'):
+    if subprocess.call(['which', 'dot']) == 0:
+        _file = transfer(data, name, path)
         cmd = ['dot', '-T' + ext, _file + '.dot', '-o', _file + '.' + ext]
         result = subprocess.call(cmd)
         if result > 0:
             raise TransferalError('Some probroblems occured while transfering.')
         print('Finished to Draw at {}.'.format(_file + 'ext'))
+    else:
+        raise DotCommandNotFound
 
 
 def make_body(data):
@@ -52,7 +61,17 @@ def make_body(data):
 
 
 def arrow(key, value):
+    if PYVER == 2:
+        key, value = list(replace_byte_str(key, value))
     return str(key) + '->' + str(value) + ';'
+
+
+def replace_byte_str(*args):
+    for arg in args:
+        if isinstance(arg, bytearray):
+            yield 'bytearray(b\'{}\')'.format(arg)
+        else:
+            yield arg
 
 
 def iter_parse_dict(data):

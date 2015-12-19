@@ -1,1 +1,5 @@
 __pycache__
+.python-version
+*.pyc
+.tox
+grapy.egg-info
